@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Travel Companion</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=geometry"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Main Content */
+        main {
+            margin-top: 80px;
+            min-height: calc(100vh - 80px);
+        }
+
+        .page {
+            display: none;
+            padding: 2rem 0;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Home Page */
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .search-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 0.75rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Cards */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .card .price {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #28a745;
+            margin: 1rem 0;
+        }
+
+        .rating {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .stars {
+            color: #ffc107;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .close {
+            font-size: 2rem;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        /* Map */
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+
+        /* Trip Status */
+        .trip-status {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .status-active {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-completed {
+            background: #6c757d;
+            color: white;
+        }
+
+        .status-cancelled {
+            background: #dc3545;
+            color: white;
+        }
+
+        /* Admin Dashboard */
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 3000;
+            transform: translateX(400px);
+            transition: transform 0.3s;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #28a745;
+        }
+
+        .notification.error {
+            background: #dc3545;
+        }
+
+        .notification.info {
+            background: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="logo">🌍 Travel Companion</div>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#" onclick="showPage('home')">Home</a></li>
+                <li><a href="#" onclick="showPage('search')" id="searchNav" class="hidden">Search</a></li>
+                <li><a href="#" onclick="showPage('trips')" id="tripsNav" class="hidden">My Trips</a></li>
+                <li><a href="#" onclick="showPage('profile')" id="profileNav" class="hidden">Profile</a></li>
+                <li><a href="#" onclick="showPage('admin')" id="adminNav" class="hidden">Admin</a></li>
+            </ul>
+            <div class="auth-buttons" id="authButtons">
+                <a href="#" class="btn btn-secondary" onclick="showModal('loginModal')">Login</a>
+                <a href="#" class="btn btn-primary" onclick="showModal('registerModal')">Sign Up</a>
+            </div>
+            <div class="user-menu hidden" id="userMenu">
+                <span id="userName"></span>
+                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Home Page -->
+        <div id="home" class="page active">
+            <div class="hero">
+                <div class="container">
+                    <h1>Your Journey Starts Here</h1>
+                    <p>Book flights, hotels, and buses all in one place</p>
+                    
+                    <div class="search-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="from">From</label>
+                                <input type="text" id="from" placeholder="Departure city">
+                            </div>
+                            <div class="form-group">
+                                <label for="to">To</label>
+                                <input type="text" id="to" placeholder="Destination city">
+                            </div>
+                            <div class="form-group">
+                                <label for="travelType">Travel Type</label>
+                                <select id="travelType">
+                                    <option value="flight">Flight</option>
+                                    <option value="hotel">Hotel</option>
+                                    <option value="bus">Bus</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="departDate">Departure Date</label>
+                                <input type="date" id="departDate">
+                            </div>
+                            <div class="form-group">
+                                <label for="returnDate">Return Date</label>
+                                <input type="date" id="returnDate">
+                            </div>
+                            <div class="form-group">
+                                <label for="passengers">Passengers</label>
+                                <select id="passengers">
+                                    <option value="1">1 Passenger</option>
+                                    <option value="2">2 Passengers</option>
+                                    <option value="3">3 Passengers</option>
+                                    <option value="4">4+ Passengers</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="searchTravel()" style="width: 100%; margin-top: 1rem;">
+                            Search Travels
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <h2 style="text-align: center; color: white; margin: 3rem 0 2rem;">Popular Destinations</h2>
+                <div class="cards-grid" id="popularDestinations">
+                    <!-- Popular destinations will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results Page -->
+        <div id="search" class="page">
+            <div class="container">
+                <h2 style="color: white; margin-bottom: 2rem;">Search Results</h2>
+                <div class="cards-grid" id="searchResults">
+                    <!-- Search results will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Trip Page -->
+        <div id="activeTrip" class="page">
+            <div class="container">
+                <h2 style="color: white; margin-bottom: 2rem;">Active Trip</h2>
+                <div class="trip-status" id="tripStatus">
+                    <!-- Trip status will be loaded here -->
+                </div>
+                <div id="map"></div>
+                <div class="card">
+                    <h3>Trip Details</h3>
+                    <div id="tripDetails">
+                        <!-- Trip details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trip History Page -->
+        <div id="trips" class="page">
+            <div class="container">
+                <h2 style="color: white; margin-bottom: 2rem;">My Trips</h2>
+                <div class="cards-grid" id="tripHistory">
+                    <!-- Trip history will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="profile" class="page">
+            <div class="container">
+                <h2 style="color: white; margin-bottom: 2rem;">My Profile</h2>
+                <div class="card">
+                    <h3>Personal Information</h3>
+                    <form id="profileForm">
+                        <div class="form-group">
+                            <label for="profileName">Full Name</label>
+                            <input type="text" id="profileName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileEmail">Email</label>
+                            <input type="email" id="profileEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profilePhone">Phone</label>
+                            <input type="tel" id="profilePhone">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="admin" class="page">
+            <div class="container">
+                <h2 style="color: white; margin-bottom: 2rem;">Admin Dashboard</h2>
+                
+                <div class="admin-stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalBookings">0</div>
+                        <div>Total Bookings</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalUsers">0</div>
+                        <div>Total Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalListings">0</div>
+                        <div>Total Listings</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="avgRating">0</div>
+                        <div>Average Rating</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Add New Listing</h3>
+                    <form id="addListingForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="listingTitle">Title</label>
+                                <input type="text" id="listingTitle" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="listingType">Type</label>
+                                <select id="listingType" required>
+                                    <option value="flight">Flight</option>
+                                    <option value="hotel">Hotel</option>
+                                    <option value="bus">Bus</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="listingPrice">Price</label>
+                                <input type="number" id="listingPrice" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="listingFrom">From</label>
+                                <input type="text" id="listingFrom" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="listingTo">To</label>
+                                <input type="text" id="listingTo" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="listingDescription">Description</label>
+                            <textarea id="listingDescription" rows="3" style="width: 100%; padding: 0.75rem; border: 2px solid #e1e5e9; border-radius: 8px;"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Listing</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Recent Bookings</h3>
+                    <div id="recentBookings">
+                        <!-- Recent bookings will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Login</h3>
+                <span class="close" onclick="hideModal('loginModal')">&times;</span>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+            </form>
+            <p style="text-align: center; margin-top: 1rem;">
+                Don't have an account? <a href="#" onclick="hideModal('loginModal'); showModal('registerModal');">Sign up</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Sign Up</h3>
+                <span class="close" onclick="hideModal('registerModal')">&times;</span>
+            </div>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="registerName">Full Name</label>
+                    <input type="text" id="registerName" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPhone">Phone</label>
+                    <input type="tel" id="registerPhone">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Sign Up</button>
+            </form>
+            <p style="text-align: center; margin-top: 1rem;">
+                Already have an account? <a href="#" onclick="hideModal('registerModal'); showModal('loginModal');">Login</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="bookingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Book Your Trip</h3>
+                <span class="close" onclick="hideModal('bookingModal')">&times;</span>
+            </div>
+            <div id="bookingDetails">
+                <!-- Booking details will be loaded here -->
+            </div>
+            <form id="bookingForm">
+                <h4>Passenger Details</h4>
+                <div id="passengerDetails">
+                    <!-- Passenger forms will be generated here -->
+                </div>
+                <div class="form-group">
+                    <label for="specialRequests">Special Requests</label>
+                    <textarea id="specialRequests" rows="3" style="width: 100%; padding: 0.75rem; border: 2px solid #e1e5e9; border-radius: 8px;"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Confirm Booking</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rating Modal -->
+    <div id="ratingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Rate Your Experience</h3>
+                <span class="close" onclick="hideModal('ratingModal')">&times;</span>
+            </div>
+            <form id="ratingForm">
+                <div class="form-group">
+                    <label>Rating</label>
+                    <div class="rating-input">
+                        <span class="star" data-rating="1">⭐</span>
+                        <span class="star" data-rating="2">⭐</span>
+                        <span class="star" data-rating="3">⭐</span>
+                        <span class="star" data-rating="4">⭐</span>
+                        <span class="star" data-rating="5">⭐</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="reviewText">Review</label>
+                    <textarea id="reviewText" rows="4" style="width: 100%; padding: 0.75rem; border: 2px solid #e1e5e9; border-radius: 8px;" placeholder="Share your experience..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Review</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let currentBooking = null;
+        let map = null;
+        let trackingInterval = null;
+        let selectedRating = 0;
+
+        // API Base URL - Replace with your backend URL
+        const API_BASE = 'https://your-backend-url.render.com/api';
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            setupEventListeners();
+            loadPopularDestinations();
+            
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('departDate').min = today;
+            document.getElementById('returnDate').min = today;
+        });
+
+        function initializeApp() {
+            // Check if user is logged in
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                // Verify token and get user info
+                verifyToken(token);
+            }
+        }
+
+        function setupEventListeners() {
+            // Form submissions
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('registerForm').addEventListener('submit', handleRegister);
+            document.getElementById('bookingForm').addEventListener('submit', handleBooking);
+            document.getElementById('profileForm').addEventListener('submit', handleProfileUpdate);
+            document.getElementById('addListingForm').addEventListener('submit', handleAddListing);
+            document.getElementById('ratingForm').addEventListener('submit', handleRating);
+
+            // Rating stars
+            document.querySelectorAll('.star').forEach(star => {
+                star.addEventListener('click', function() {
+                    selectedRating = parseInt(this.dataset.rating);
+                    updateStarDisplay();
+                });
+            });
+
+            // Date validation
+            document.getElementById('departDate').addEventListener('change', function() {
+                const departDate = this.value;
+                document.getElementById('returnDate').min = departDate;
+            });
+        }
+
+        // Authentication functions
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                showLoading('loginForm');
+                const response = await mockApiCall('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (response.success) {
+                    currentUser = response.user;
+                    localStorage.setItem('authToken', response.token);
+                    updateUIForLoggedInUser();
+                    hideModal('loginModal');
+                    showNotification('Login successful!', 'success');
+                } else {
+                    showNotification(response.message || 'Login failed', 'error');
+                }
+            } catch (error) {
+                showNotification('Login failed. Please try again.', 'error');
+            } finally {
+                hideLoading('loginForm');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const phone = document.getElementById('registerPhone').value;
+
+            try {
+                showLoading('registerForm');
+                const response = await mockApiCall('/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ name, email, password, phone })
+                });
+
+                if (response.success) {
+                    currentUser = response.user;
+                    localStorage.setItem('authToken', response.token);
+                    updateUIForLoggedInUser();
+                    hideModal('registerModal');
+                    showNotification('Registration successful!', 'success');
+                } else {
+                    showNotification(response.message || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                showNotification('Registration failed. Please try again.', 'error');
+            } finally {
+                hideLoading('registerForm');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            updateUIForLoggedOutUser();
+            showPage('home');
+            showNotification('Logged out successfully', 'info');
+        }
+
+        async function verifyToken(token) {
+            try {
+                const response = await mockApiCall('/auth/verify', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.success) {
+                    currentUser = response.user;
+                    updateUIForLoggedInUser();
+                } else {
+                    localStorage.removeItem('authToken');
+                }
+            } catch (error) {
+                localStorage.removeItem('authToken');
+            }
+        }
+
+        // UI Update functions
+        function updateUIForLoggedInUser() {
+            document.getElementById('authButtons').classList.add('hidden');
+            document.getElementById('userMenu').classList.remove('hidden');
+            document.getElementById('userName').textContent = currentUser.name;
+            
+            // Show authenticated navigation items
+            document.getElementById('searchNav').classList.remove('hidden');
+            document.getElementById('tripsNav').classList.remove('hidden');
+            document.getElementById('profileNav').classList.remove('hidden');
+            
+            if (currentUser.role === 'admin') {
+                document.getElementById('adminNav').classList.remove('hidden');
+            }
+
+            // Load user-specific data
+            loadTripHistory();
+            loadProfile();
+        }
+
+        function updateUIForLoggedOutUser() {
+            document.getElementById('authButtons').classList.remove('hidden');
+            document.getElementById('userMenu').classList.add('hidden');
+            
+            // Hide authenticated navigation items
+            document.getElementById('searchNav').classList.add('hidden');
+            document.getElementById('tripsNav').classList.add('hidden');
+            document.getElementById('profileNav').classList.add('hidden');
+            document.getElementById('adminNav').classList.add('hidden');
+        }
+
+        // Page navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+
+            // Load page-specific data
+            switch(pageId) {
+                case 'admin':
+                    loadAdminDashboard();
+                    break;
+                case 'trips':
+                    loadTripHistory();
+                    break;
+                case 'activeTrip':
+                    loadActiveTrip();
+                    break;
+            }
+        }
+
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Search and booking functions
+        async function searchTravel() {
+            if (!currentUser) {
+                showNotification('Please login to search', 'error');
+                showModal('loginModal');
+                return;
+            }
+
+            const from = document.getElementById('from').value;
+            const to = document.getElementById('to').value;
+            const type = document.getElementById('travelType').value;
+            const departDate = document.getElementById('departDate').value;
+            const passengers = document.getElementById('passengers').value;
+
+            if (!from || !to || !departDate) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+
+            try {
+                const response = await mockApiCall(`/search?from=${from}&to=${to}&type=${type}&date=${departDate}&passengers=${passengers}`);
+                
+                if (response.success) {
+                    displaySearchResults(response.results);
+                    showPage('search');
+                } else {
+                    showNotification('Search failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                showNotification('Search failed. Please try again.', 'error');
+            }
+        }
+
+        function displaySearchResults(results) {
+            const container = document.getElementById('searchResults');
+            container.innerHTML = '';
+
+            if (results.length === 0) {
+                container.innerHTML = '<div class="card"><h3>No results found</h3><p>Try adjusting your search criteria.</p></div>';
+                return;
+            }
+
+            results.forEach(result => {
+                const card = createListingCard(result, true);
+                container.appendChild(card);
+            });
+        }
+
+        function createListingCard(listing, showBookButton = false) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            const typeIcon = {
+                'flight': '✈️',
+                'hotel': '🏨',
+                'bus': '🚌'
+            };
+
+            card.innerHTML = `
+                <h3>${typeIcon[listing.type] || '🌍'} ${listing.title}</h3>
+                <p>${listing.description || `${listing.from} → ${listing.to}`}</p>
+                <div class="price">₹${listing.price}</div>
+                <div class="rating">
+                    <span class="stars">${'⭐'.repeat(Math.floor(listing.rating || 4))}</span>
+                    <span>${listing.rating || 4.0} (${listing.reviews || 0} reviews)</span>
+                </div>
+                ${showBookButton ? `<button class="btn btn-primary" onclick="openBookingModal(${listing.id})">Book Now</button>` : ''}
+            `;
+
+            return card;
+        }
+
+        function openBookingModal(listingId) {
+            // Find the listing
+            const listing = mockData.listings.find(l => l.id === listingId);
+            if (!listing) return;
+
+            currentBooking = { listing };
+            
+            // Display booking details
+            const detailsContainer = document.getElementById('bookingDetails');
+            detailsContainer.innerHTML = `
+                <div class="card" style="margin-bottom: 1rem;">
+                    <h4>${listing.title}</h4>
+                    <p>${listing.from} → ${listing.to}</p>
+                    <div class="price">₹${listing.price}</div>
+                </div>
+            `;
+
+            // Generate passenger forms
+            const passengerCount = parseInt(document.getElementById('passengers').value) || 1;
+            const passengerContainer = document.getElementById('passengerDetails');
+            passengerContainer.innerHTML = '';
+
+            for (let i = 0; i < passengerCount; i++) {
+                const passengerForm = document.createElement('div');
+                passengerForm.innerHTML = `
+                    <h5>Passenger ${i + 1}</h5>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" name="passenger_${i}_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Age</label>
+                            <input type="number" name="passenger_${i}_age" min="1" max="120" required>
+                        </div>
+                    </div>
+                `;
+                passengerContainer.appendChild(passengerForm);
+            }
+
+            showModal('bookingModal');
+        }
+
+        async function handleBooking(e) {
+            e.preventDefault();
+            
+            if (!currentBooking) return;
+
+            try {
+                showLoading('bookingForm');
+                
+                // Collect passenger data
+                const passengers = [];
+                const passengerInputs = document.querySelectorAll('[name^="passenger_"]');
+                const passengerCount = parseInt(document.getElementById('passengers').value) || 1;
+                
+                for (let i = 0; i < passengerCount; i++) {
+                    const name = document.querySelector(`[name="passenger_${i}_name"]`).value;
+                    const age = document.querySelector(`[name="passenger_${i}_age"]`).value;
+                    passengers.push({ name, age });
+                }
+
+                const bookingData = {
+                    user_id: currentUser.id,
+                    listing_id: currentBooking.listing.id,
+                    passengers,
+                    special_requests: document.getElementById('specialRequests').value
+                };
+
+                const response = await mockApiCall('/bookings', {
+                    method: 'POST',
+                    body: JSON.stringify(bookingData)
+                });
+
+                if (response.success) {
+                    hideModal('bookingModal');
+                    showNotification('Booking confirmed!', 'success');
+                    loadTripHistory();
+                    showPage('trips');
+                } else {
+                    showNotification(response.message || 'Booking failed', 'error');
+                }
+            } catch (error) {
+                showNotification('Booking failed. Please try again.', 'error');
+            } finally {
+                hideLoading('bookingForm');
+            }
+        }
+
+        // Trip management
+        async function loadTripHistory() {
+            if (!currentUser) return;
+
+            try {
+                const response = await mockApiCall(`/bookings/user/${currentUser.id}`);
+                
+                if (response.success) {
+                    displayTripHistory(response.bookings);
+                }
+            } catch (error) {
+                console.error('Failed to load trip history:', error);
+            }
+        }
+
+        function displayTripHistory(bookings) {
+            const container = document.getElementById('tripHistory');
+            container.innerHTML = '';
+
+            if (bookings.length === 0) {
+                container.innerHTML = '<div class="card"><h3>No trips yet</h3><p>Start planning your next adventure!</p></div>';
+                return;
+            }
+
+            bookings.forEach(booking => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                const statusClass = `status-${booking.status}`;
+                const canRate = booking.status === 'completed' && !booking.rated;
+                const canTrack = booking.status === 'active';
+
+                card.innerHTML = `
+                    <h3>${booking.listing.title}</h3>
+                    <p>${booking.listing.from} → ${booking.listing.to}</p>
+                    <div class="price">₹${booking.listing.price}</div>
+                    <div class="status-indicator ${statusClass}">${booking.status}</div>
+                    <p><strong>Booking ID:</strong> ${booking.id}</p>
+                    <p><strong>Date:</strong> ${new Date(booking.created_at).toLocaleDateString()}</p>
+                    <div style="margin-top: 1rem;">
+                        ${canTrack ? `<button class="btn btn-primary" onclick="trackTrip(${booking.id})">Track Live</button>` : ''}
+                        ${canRate ? `<button class="btn btn-secondary" onclick="openRatingModal(${booking.id})">Rate Trip</button>` : ''}
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        function trackTrip(bookingId) {
+            // Find the booking
+            const booking = mockData.bookings.find(b => b.id === bookingId);
+            if (!booking) return;
+
+            currentBooking = booking;
+            showPage('activeTrip');
+            loadActiveTrip();
+        }
+
+        function loadActiveTrip() {
+            if (!currentBooking) return;
+
+            // Display trip status
+            const statusContainer = document.getElementById('tripStatus');
+            statusContainer.innerHTML = `
+                <h3>Trip Status: <span class="status-indicator status-active">Active</span></h3>
+                <p><strong>Route:</strong> ${currentBooking.listing.from} → ${currentBooking.listing.to}</p>
+                <p><strong>Estimated Arrival:</strong> ${new Date(Date.now() + 2 * 60 * 60 * 1000).toLocaleTimeString()}</p>
+            `;
+
+            // Display trip details
+            const detailsContainer = document.getElementById('tripDetails');
+            detailsContainer.innerHTML = `
+                <p><strong>Booking ID:</strong> ${currentBooking.id}</p>
+                <p><strong>Service:</strong> ${currentBooking.listing.title}</p>
+                <p><strong>Passengers:</strong> ${currentBooking.passengers.map(p => p.name).join(', ')}</p>
+            `;
+
+            // Initialize map
+            initializeMap();
+            startLiveTracking();
+        }
+
+        function initializeMap() {
+            // Mock coordinates for demo
+            const fromCoords = { lat: 28.7041, lng: 77.1025 }; // Delhi
+            const toCoords = { lat: 26.9124, lng: 75.7873 };   // Jaipur
+
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 8,
+                center: fromCoords
+            });
+
+            // Add markers
+            new google.maps.Marker({
+                position: fromCoords,
+                map: map,
+                title: 'Origin',
+                icon: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
+            });
+
+            new google.maps.Marker({
+                position: toCoords,
+                map: map,
+                title: 'Destination',
+                icon: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
+            });
+
+            // Add route
+            const directionsService = new google.maps.DirectionsService();
+            const directionsRenderer = new google.maps.DirectionsRenderer();
+            directionsRenderer.setMap(map);
+
+            directionsService.route({
+                origin: fromCoords,
+                destination: toCoords,
+                travelMode: google.maps.TravelMode.DRIVING
+            }, (result, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(result);
+                }
+            });
+        }
+
+        function startLiveTracking() {
+            // Simulate live tracking with mock GPS updates
+            let progress = 0;
+            const fromCoords = { lat: 28.7041, lng: 77.1025 };
+            const toCoords = { lat: 26.9124, lng: 75.7873 };
+
+            trackingInterval = setInterval(() => {
+                progress += 0.02; // 2% progress each update
+                
+                if (progress >= 1) {
+                    clearInterval(trackingInterval);
+                    showNotification('Trip completed!', 'success');
+                    return;
+                }
+
+                // Calculate current position
+                const currentLat = fromCoords.lat + (toCoords.lat - fromCoords.lat) * progress;
+                const currentLng = fromCoords.lng + (toCoords.lng - fromCoords.lng) * progress;
+
+                // Update vehicle marker
+                if (window.vehicleMarker) {
+                    window.vehicleMarker.setPosition({ lat: currentLat, lng: currentLng });
+                } else {
+                    window.vehicleMarker = new google.maps.Marker({
+                        position: { lat: currentLat, lng: currentLng },
+                        map: map,
+                        title: 'Vehicle',
+                        icon: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    });
+                }
+
+                // Update progress
+                const progressPercent = Math.round(progress * 100);
+                document.getElementById('tripStatus').innerHTML = `
+                    <h3>Trip Status: <span class="status-indicator status-active">Active</span></h3>
+                    <p><strong>Progress:</strong> ${progressPercent}%</p>
+                    <p><strong>Route:</strong> ${currentBooking.listing.from} → ${currentBooking.listing.to}</p>
+                    <p><strong>Estimated Arrival:</strong> ${new Date(Date.now() + (1 - progress) * 2 * 60 * 60 * 1000).toLocaleTimeString()}</p>
+                `;
+            }, 2000); // Update every 2 seconds
+        }
+
+        // Rating system
+        function openRatingModal(bookingId) {
+            currentBooking = mockData.bookings.find(b => b.id === bookingId);
+            selectedRating = 0;
+            updateStarDisplay();
+            document.getElementById('reviewText').value = '';
+            showModal('ratingModal');
+        }
+
+        function updateStarDisplay() {
+            document.querySelectorAll('.star').forEach((star, index) => {
+                star.style.opacity = index < selectedRating ? '1' : '0.3';
+            });
+        }
+
+        async function handleRating(e) {
+            e.preventDefault();
+            
+            if (!currentBooking || selectedRating === 0) {
+                showNotification('Please select a rating', 'error');
+                return;
+            }
+
+            try {
+                const ratingData = {
+                    booking_id: currentBooking.id,
+                    rating: selectedRating,
+                    review: document.getElementById('reviewText').value
+                };
+
+                const response = await mockApiCall('/ratings', {
+                    method: 'POST',
+                    body: JSON.stringify(ratingData)
+                });
+
+                if (response.success) {
+                    hideModal('ratingModal');
+                    showNotification('Thank you for your review!', 'success');
+                    loadTripHistory();
+                } else {
+                    showNotification('Failed to submit review', 'error');
+                }
+            } catch (error) {
+                showNotification('Failed to submit review', 'error');
+            }
+        }
+
+        // Profile management
+        async function loadProfile() {
+            if (!currentUser) return;
+
+            document.getElementById('profileName').value = currentUser.name;
+            document.getElementById('profileEmail').value = currentUser.email;
+            document.getElementById('profilePhone').value = currentUser.phone || '';
+        }
+
+        async function handleProfileUpdate(e) {
+            e.preventDefault();
+            
+            try {
+                showLoading('profileForm');
+                
+                const profileData = {
+                    name: document.getElementById('profileName').value,
+                    email: document.getElementById('profileEmail').value,
+                    phone: document.getElementById('profilePhone').value
+                };
+
+                const response = await mockApiCall(`/users/${currentUser.id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(profileData)
+                });
+
+                if (response.success) {
+                    currentUser = { ...currentUser, ...profileData };
+                    document.getElementById('userName').textContent = currentUser.name;
+                    showNotification('Profile updated successfully!', 'success');
+                } else {
+                    showNotification('Failed to update profile', 'error');
+                }
+            } catch (error) {
+                showNotification('Failed to update profile', 'error');
+            } finally {
+                hideLoading('profileForm');
+            }
+        }
+
+        // Admin functions
+        async function loadAdminDashboard() {
+            if (!currentUser || currentUser.role !== 'admin') return;
+
+            try {
+                const response = await mockApiCall('/admin/stats');
+                
+                if (response.success) {
+                    document.getElementById('totalBookings').textContent = response.stats.totalBookings;
+                    document.getElementById('totalUsers').textContent = response.stats.totalUsers;
+                    document.getElementById('totalListings').textContent = response.stats.totalListings;
+                    document.getElementById('avgRating').textContent = response.stats.avgRating.toFixed(1);
+                }
+
+                loadRecentBookings();
+            } catch (error) {
+                console.error('Failed to load admin dashboard:', error);
+            }
+        }
+
+        async function loadRecentBookings() {
+            try {
+                const response = await mockApiCall('/admin/bookings/recent');
+                
+                if (response.success) {
+                    const container = document.getElementById('recentBookings');
+                    container.innerHTML = '';
+
+                    response.bookings.forEach(booking => {
+                        const bookingElement = document.createElement('div');
+                        bookingElement.style.cssText = 'padding: 1rem; border-bottom: 1px solid #eee;';
+                        bookingElement.innerHTML = `
+                            <p><strong>Booking #${booking.id}</strong> - ${booking.user.name}</p>
+                            <p>${booking.listing.title} (${booking.listing.from} → ${booking.listing.to})</p>
+                            <p>Status: <span class="status-indicator status-${booking.status}">${booking.status}</span></p>
+                        `;
+                        container.appendChild(bookingElement);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load recent bookings:', error);
+            }
+        }
+
+        async function handleAddListing(e) {
+            e.preventDefault();
+            
+            try {
+                showLoading('addListingForm');
+                
+                const listingData = {
+                    title: document.getElementById('listingTitle').value,
+                    type: document.getElementById('listingType').value,
+                    price: parseFloat(document.getElementById('listingPrice').value),
+                    from: document.getElementById('listingFrom').value,
+                    to: document.getElementById('listingTo').value,
+                    description: document.getElementById('listingDescription').value
+                };
+
+                const response = await mockApiCall('/admin/listings', {
+                    method: 'POST',
+                    body: JSON.stringify(listingData)
+                });
+
+                if (response.success) {
+                    document.getElementById('addListingForm').reset();
+                    showNotification('Listing added successfully!', 'success');
+                    loadAdminDashboard();
+                } else {
+                    showNotification('Failed to add listing', 'error');
+                }
+            } catch (error) {
+                showNotification('Failed to add listing', 'error');
+            } finally {
+                hideLoading('addListingForm');
+            }
+        }
+
+        // Popular destinations
+        async function loadPopularDestinations() {
+            try {
+                const response = await mockApiCall('/listings/popular');
+                
+                if (response.success) {
+                    const container = document.getElementById('popularDestinations');
+                    container.innerHTML = '';
+
+                    response.listings.forEach(listing => {
+                        const card = createListingCard(listing);
+                        container.appendChild(card);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load popular destinations:', error);
+            }
+        }
+
+        // Utility functions
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => notification.classList.add('show'), 100);
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 3000);
+        }
+
+        function showLoading(formId) {
+            const form = document.getElementById(formId);
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.innerHTML = '<span class="loading"></span> Loading...';
+            submitButton.disabled = true;
+        }
+
+        function hideLoading(formId) {
+            const form = document.getElementById(formId);
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalText = {
+                'loginForm': 'Login',
+                'registerForm': 'Sign Up',
+                'bookingForm': 'Confirm Booking',
+                'profileForm': 'Update Profile',
+                'addListingForm': 'Add Listing'
+            };
+            submitButton.innerHTML = originalText[formId] || 'Submit';
+            submitButton.disabled = false;
+        }
+
+        // Mock API and data
+        const mockData = {
+            users: [
+                { id: 1, name: 'John Doe', email: 'john@example.com', phone: '+91-9876543210', role: 'user' },
+                { id: 2, name: 'Jane Smith', email: 'jane@example.com', phone: '+91-9876543211', role: 'user' },
+                { id: 3, name: 'Admin User', email: 'admin@example.com', phone: '+91-9876543212', role: 'admin' },
+                { id: 4, name: 'Bob Johnson', email: 'bob@example.com', phone: '+91-9876543213', role: 'user' }
+            ],
+            listings: [
+                { id: 1, title: 'AC Sleeper Bus', type: 'bus', from: 'Delhi', to: 'Jaipur', price: 1200, rating: 4.3, reviews: 45, description: 'Comfortable AC sleeper bus with entertainment system' },
+                { id: 2, title: 'Luxury Hotel Suite', type: 'hotel', from: 'Jaipur', to: 'Jaipur', price: 5000, rating: 4.8, reviews: 120, description: '5-star luxury suite with city view' },
+                { id: 3, title: 'Express Flight', type: 'flight', from: 'Delhi', to: 'Mumbai', price: 8500, rating: 4.5, reviews: 89, description: 'Direct flight with complimentary meals' },
+                { id: 4, title: 'Semi-Sleeper Bus', type: 'bus', from: 'Mumbai', to: 'Pune', price: 800, rating: 4.1, reviews: 67, description: 'Comfortable semi-sleeper bus' },
+                { id: 5, title: 'Business Hotel', type: 'hotel', from: 'Mumbai', to: 'Mumbai', price: 3500, rating: 4.4, reviews: 78, description: 'Modern business hotel in city center' },
+                { id: 6, title: 'Economy Flight', type: 'flight', from: 'Bangalore', to: 'Chennai', price: 4500, rating: 4.2, reviews: 56, description: 'Affordable flight with good service' }
+            ],
+            bookings: [
+                { id: 1, user_id: 1, listing_id: 1, status: 'completed', passengers: [{ name: 'John Doe', age: 30 }], created_at: '2024-01-15T10:00:00Z', rated: false },
+                { id: 2, user_id: 1, listing_id: 2, status: 'active', passengers: [{ name: 'John Doe', age: 30 }], created_at: '2024-01-20T14:30:00Z', rated: false },
+                { id: 3, user_id: 2, listing_id: 3, status: 'completed', passengers: [{ name: 'Jane Smith', age: 28 }], created_at: '2024-01-18T09:15:00Z', rated: true },
+                { id: 4, user_id: 2, listing_id: 4, status: 'cancelled', passengers: [{ name: 'Jane Smith', age: 28 }], created_at: '2024-01-22T16:45:00Z', rated: false },
+                { id: 5, user_id: 4, listing_id: 5, status: 'completed', passengers: [{ name: 'Bob Johnson', age: 35 }], created_at: '2024-01-25T11:20:00Z', rated: true }
+            ]
+        };
+
+        // Mock API function
+        async function mockApiCall(endpoint, options = {}) {
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+
+            const method = options.method || 'GET';
+            const body = options.body ? JSON.parse(options.body) : null;
+
+            // Route the API calls
+            if (endpoint === '/auth/login') {
+                const user = mockData.users.find(u => u.email === body.email);
+                if (user && body.password === 'password123') {
+                    return {
+                        success: true,
+                        user,
+                        token: 'mock-jwt-token-' + user.id
+                    };
+                }
+                return { success: false, message: 'Invalid credentials' };
+            }
+
+            if (endpoint === '/auth/register') {
+                const existingUser = mockData.users.find(u => u.email === body.email);
+                if (existingUser) {
+                    return { success: false, message: 'Email already exists' };
+                }
+                
+                const newUser = {
+                    id: mockData.users.length + 1,
+                    ...body,
+                    role: 'user'
+                };
+                mockData.users.push(newUser);
+                
+                return {
+                    success: true,
+                    user: newUser,
+                    token: 'mock-jwt-token-' + newUser.id
+                };
+            }
+
+            if (endpoint === '/auth/verify') {
+                const token = options.headers?.Authorization?.replace('Bearer ', '');
+                const userId = token?.split('-').pop();
+                const user = mockData.users.find(u => u.id == userId);
+                
+                if (user) {
+                    return { success: true, user };
+                }
+                return { success: false };
+            }
+
+            if (endpoint.startsWith('/search')) {
+                const params = new URLSearchParams(endpoint.split('?')[1]);
+                const type = params.get('type');
+                const from = params.get('from');
+                const to = params.get('to');
+                
+                let results = mockData.listings.filter(listing => {
+                    return listing.type === type &&
+                           listing.from.toLowerCase().includes(from.toLowerCase()) &&
+                           listing.to.toLowerCase().includes(to.toLowerCase());
+                });
+
+                // Add listing objects to results
+                results = results.map(listing => ({
+                    ...listing,
+                    listing: mockData.listings.find(l => l.id === listing.id)
+                }));
+
+                return { success: true, results };
+            }
+
+            if (endpoint === '/bookings' && method === 'POST') {
+                const newBooking = {
+                    id: mockData.bookings.length + 1,
+                    ...body,
+                    status: 'confirmed',
+                    created_at: new Date().toISOString()
+                };
+                mockData.bookings.push(newBooking);
+                
+                return {
+                    success: true,
+                    booking_id: newBooking.id,
+                    status: 'confirmed',
+                    itinerary: mockData.listings.find(l => l.id === body.listing_id)
+                };
+            }
+
+            if (endpoint.startsWith('/bookings/user/')) {
+                const userId = parseInt(endpoint.split('/').pop());
+                const userBookings = mockData.bookings
+                    .filter(b => b.user_id === userId)
+                    .map(booking => ({
+                        ...booking,
+                        listing: mockData.listings.find(l => l.id === booking.listing_id)
+                    }));
+                
+                return { success: true, bookings: userBookings };
+            }
+
+            if (endpoint === '/ratings' && method === 'POST') {
+                // Mark booking as rated
+                const booking = mockData.bookings.find(b => b.id === body.booking_id);
+                if (booking) {
+                    booking.rated = true;
+                }
+                
+                return { success: true };
+            }
+
+            if (endpoint.startsWith('/users/') && method === 'PUT') {
+                const userId = parseInt(endpoint.split('/')[2]);
+                const user = mockData.users.find(u => u.id === userId);
+                if (user) {
+                    Object.assign(user, body);
+                    return { success: true, user };
+                }
+                return { success: false };
+            }
+
+            if (endpoint === '/admin/stats') {
+                return {
+                    success: true,
+                    stats: {
+                        totalBookings: mockData.bookings.length,
+                        totalUsers: mockData.users.length,
+                        totalListings: mockData.listings.length,
+                        avgRating: 4.3
+                    }
+                };
+            }
+
+            if (endpoint === '/admin/bookings/recent') {
+                const recentBookings = mockData.bookings
+                    .slice(-5)
+                    .map(booking => ({
+                        ...booking,
+                        user: mockData.users.find(u => u.id === booking.user_id),
+                        listing: mockData.listings.find(l => l.id === booking.listing_id)
+                    }));
+                
+                return { success: true, bookings: recentBookings };
+            }
+
+            if (endpoint === '/admin/listings' && method === 'POST') {
+                const newListing = {
+                    id: mockData.listings.length + 1,
+                    ...body,
+                    rating: 4.0,
+                    reviews: 0
+                };
+                mockData.listings.push(newListing);
+                
+                return { success: true, listing: newListing };
+            }
+
+            if (endpoint === '/listings/popular') {
+                const popularListings = mockData.listings
+                    .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+                    .slice(0, 6);
+                
+                return { success: true, listings: popularListings };
+            }
+
+            return { success: false, message: 'Endpoint not found' };
+        }
+
+        // Demo credentials for testing
+        console.log('Demo Credentials:');
+        console.log('User: john@example.com / password123');
+        console.log('Admin: admin@example.com / password123');
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9820e31af71e7629',t:'MTc1ODM2Njc0MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
